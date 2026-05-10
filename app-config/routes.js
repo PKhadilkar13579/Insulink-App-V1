@@ -17,7 +17,7 @@ module.exports = (app) => {
   app.use("/dashboard", dashboardRouter);
   app.use("/config", configRouter);
   app.use("/users", usersRouter);
-   app.use("/api/analytics", analyticsRouter);
+  app.use("/api/analytics", analyticsRouter);
   app.use("/access", accessRouter);
   app.use("/roleaccessrelations", roleAccessRelationRouter);
 
