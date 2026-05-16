@@ -6,7 +6,8 @@ const setupDataRouter = require("../routes/setupdataupload.routes");
 const siteRouter = require("../routes/site.routes");
 const dashboardRouter = require("../routes/dashboard.routes");
 const configRouter = require("../routes/config.routes");
-const analyticsRouter = require("../routes/analytics.js");
+const analyticsOldRouter = require("../routes/analytics.js");
+const analyticsRouter = require("../routes/analytics.routes.js");
 const { createAlarmPushPoller } = require("../workers/alarmPushPoller.worker");
 
 
@@ -18,10 +19,12 @@ module.exports = (app) => {
   app.use("/dashboard", dashboardRouter);
   app.use("/config", configRouter);
   app.use("/users", usersRouter);
-  app.use("/api/analytics", analyticsRouter);
   app.use("/access", accessRouter);
   app.use("/roleaccessrelations", roleAccessRelationRouter);
+  app.use("/api/analytics", analyticsRouter);
+  app.use("/api/analytics", analyticsOldRouter);
   app.use("/analytics", analyticsRouter);
+  app.use("/analytics", analyticsOldRouter);
 
   if (!app.locals.alarmPushPoller) {
     app.locals.alarmPushPoller = createAlarmPushPoller();

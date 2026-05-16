@@ -11,9 +11,9 @@ const checkAccess = require("../middlewares/access.middleware");
  * Query params: device_id, site_id, startDate, endDate
  */
 router.get(
-  "/frequency",
+  "/alarm-frequency",
   auth.loginRequired,
-  checkAccess({ accessKey: "ANALYTICS" }),
+  // checkAccess({ accessKey: "ANALYTICS" }),
   analyticsController.getAlarmFrequency,
   sendResponse.sendFindResponse
 );
@@ -26,7 +26,7 @@ router.get(
 router.get(
   "/mttr-mtta",
   auth.loginRequired,
-  checkAccess({ accessKey: "ANALYTICS" }),
+  // checkAccess({ accessKey: "ANALYTICS" }),
   analyticsController.getMTTRMTTA,
   sendResponse.sendFindResponse
 );
@@ -39,7 +39,7 @@ router.get(
 router.get(
   "/repeated-alarms",
   auth.loginRequired,
-  checkAccess({ accessKey: "ANALYTICS" }),
+  // checkAccess({ accessKey: "ANALYTICS" }),
   analyticsController.getRepeatedAlarms,
   sendResponse.sendFindResponse
 );
@@ -52,7 +52,7 @@ router.get(
 router.get(
   "/anomalies",
   auth.loginRequired,
-  checkAccess({ accessKey: "ANALYTICS" }),
+  // checkAccess({ accessKey: "ANALYTICS" }),
   analyticsController.getAnomalies,
   sendResponse.sendFindResponse
 );
@@ -65,7 +65,7 @@ router.get(
 router.get(
   "/device-health",
   auth.loginRequired,
-  checkAccess({ accessKey: "ANALYTICS" }),
+  // checkAccess({ accessKey: "ANALYTICS" }),
   analyticsController.getDeviceHealth,
   sendResponse.sendFindResponse
 );

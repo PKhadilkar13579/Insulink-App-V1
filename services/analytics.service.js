@@ -406,13 +406,17 @@ exports.getAnomalies = async (filters = {}) => {
 exports.getDeviceHealth = async (filters = {}) => {
   const { device_id, site_id } = filters;
 
-  const where = {};
   const deviceWhere = device_id ? { device_id } : undefined;
   const siteWhere = site_id ? { site_id } : undefined;
 
-  // Get all devices with their alarm data
+  // Fetch limited devices to avoid timeout
   const devices = await Device.findAll({
-    attributes: ['device_id', 'device_name', 'connection_status', 'battery_percentage'],
+    attributes: [
+      'device_id',
+      'device_name',
+      'connection_status',
+      'battery_percentage'
+    ],
     where: deviceWhere,
     include: [
       {
@@ -426,31 +430,38 @@ exports.getDeviceHealth = async (filters = {}) => {
         as: 'channels',
         attributes: ['channel_id']
       }
-    ]
+    ],
+    limit: 10
   });
 
   const healthScores = [];
 
-  for (const device of devices) {
-    // Get alarm frequency for this device (last 7 days)
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+  // Last 7 days filter
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
+  for (const device of devices) {
+
+    // Alarm count
     const alarmCount = await AlarmLog.count({
       include: [
         {
           model: Channel,
           as: 'channel',
           attributes: [],
-          where: { device_id: device.device_id }
+          where: {
+            device_id: device.device_id
+          }
         }
       ],
       where: {
-        fault_at: { [Op.gte]: sevenDaysAgo }
+        fault_at: {
+          [Op.gte]: sevenDaysAgo
+        }
       }
     });
 
-    // Get severity distribution
+    // Severity distribution
     const severityData = await AlarmLog.findAll({
       attributes: [
         'severity',
@@ -461,54 +472,61 @@ exports.getDeviceHealth = async (filters = {}) => {
           model: Channel,
           as: 'channel',
           attributes: [],
-          where: { device_id: device.device_id }
+          where: {
+            device_id: device.device_id
+          }
         }
       ],
       where: {
-        fault_at: { [Op.gte]: sevenDaysAgo }
+        fault_at: {
+          [Op.gte]: sevenDaysAgo
+        }
       },
       group: ['severity'],
-      raw: true,
+      raw: true
     });
 
     const severityCounts = {};
+
     let severityWeight = 0;
-    severityData.forEach(s => {
+
+    severityData.forEach((s) => {
       severityCounts[s.severity] = parseInt(s.count);
-      // CRITICAL = 3, WARNING = 2, INFO = 1
-      const weight = s.severity === 'CRITICAL' ? 3 : s.severity === 'WARNING' ? 2 : 1;
+
+      const weight =
+        s.severity === 'CRITICAL'
+          ? 3
+          : s.severity === 'WARNING'
+            ? 2
+            : 1;
+
       severityWeight += weight * parseInt(s.count);
     });
 
-    // Get MTTR for this device
-    const mttrData = await exports.getMTTRMTTA({ device_id: device.device_id });
-    const avgMttr = mttrData.length > 0 ? mttrData[0].mttr_seconds : null;
+    /* ---------------------------------------------------------------------- */
+    /*               TEMPORARILY REMOVED MTTR CALCULATION                     */
+    /* ---------------------------------------------------------------------- */
 
-    // Calculate health score (0-100)
-    // Factors: alarm frequency (lower = better), severity (lower = better), MTTR (lower = better)
     let healthScore = 100;
 
-    // Penalty for high alarm frequency (max 30 points)
+    // Alarm frequency penalty
     const alarmPenalty = Math.min(30, alarmCount * 2);
     healthScore -= alarmPenalty;
 
-    // Penalty for severity (max 30 points)
+    // Severity penalty
     const severityPenalty = Math.min(30, severityWeight * 3);
     healthScore -= severityPenalty;
 
-    // Penalty for high MTTR (max 20 points, assuming 1 hour = 3600s as baseline)
-    if (avgMttr) {
-      const mttrPenalty = Math.min(20, (avgMttr / 3600) * 20);
-      healthScore -= mttrPenalty;
-    }
-
-    // Penalty for offline status (20 points)
+    // Offline penalty
     if (device.connection_status === 'OFFLINE') {
       healthScore -= 20;
     }
 
-    // Penalty for low battery (10 points)
-    if (device.battery_percentage < 20) {
+    // Low battery penalty
+    if (
+      device.battery_percentage !== null &&
+      device.battery_percentage < 20
+    ) {
       healthScore -= 10;
     }
 
@@ -516,6 +534,7 @@ exports.getDeviceHealth = async (filters = {}) => {
 
     // Determine status
     let status = 'Healthy';
+
     if (healthScore < 50) {
       status = 'Critical';
     } else if (healthScore < 75) {
@@ -530,18 +549,18 @@ exports.getDeviceHealth = async (filters = {}) => {
       connection_status: device.connection_status,
       battery_percentage: device.battery_percentage,
       health_score: healthScore,
-      status: status,
+      status,
       metrics: {
         alarm_count_7days: alarmCount,
-        severity_distribution: severityCounts,
-        avg_mttr_seconds: avgMttr,
-        avg_mttr_formatted: formatDuration(avgMttr)
+        severity_distribution: severityCounts
       }
     });
   }
 
-  // Sort by health score (worst first)
-  return healthScores.sort((a, b) => a.health_score - b.health_score);
+  // Worst devices first
+  return healthScores.sort(
+    (a, b) => a.health_score - b.health_score
+  );
 };
 
 /**

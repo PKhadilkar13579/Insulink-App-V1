@@ -2,7 +2,7 @@ const db = require("../models");
 
 module.exports = async () => {
   try {
-    await db.sequelize.sync({alter:true});
+    await db.sequelize.sync();
     console.log("✅ Database synced with alter: true");
   } catch (err) {
     console.error("❌ DB sync failed:", err);

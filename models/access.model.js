@@ -21,7 +21,7 @@ module.exports = (sequelize, DataTypes) => {
       module_code: {
         type: DataTypes.STRING(100),
         allowNull: false,
-        unique: true
+        unique: 'unique_module_code'
       },
       module_name: {
         type: DataTypes.STRING(255),
